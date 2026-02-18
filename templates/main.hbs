@@ -1,0 +1,280 @@
+﻿<div class="lively-tokens-root" style="width: 20rem; display: flex; flex-direction: column; gap: 0.75rem">
+  <style>
+    .lively-section {
+      border-radius: 6px;
+      padding: 0.5rem;
+    }
+
+    .lively-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .lively-toggle {
+      user-select: none;
+    }
+
+    .lively-images {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .lively-image {
+      border-radius: 6px;
+      padding: 0.5rem;
+      background: rgba(0,0,0,0.15);
+    }
+
+    .lively-image-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .lively-image-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .lively-image-actions {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .lively-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .lively-btn-primary {
+      font-weight: 600;
+    }
+
+    .lively-btn-danger {
+      color: white;
+      background: rgba(180,0,0,0.6);
+    }
+
+    .lively-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .lively-span-2 {
+      grid-column: 1 / span 2;
+    }
+
+    .lively-field label {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+      opacity: 0.9;
+    }
+
+    .lively-src-row {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .lively-src-row input {
+      flex: 1;
+    }
+
+    .lively-size-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .lively-size-row input {
+      width: 4.5rem;
+    }
+
+    .lively-x {
+      opacity: 0.7;
+    }
+
+    .lively-preview {
+      margin-top: 0.35rem;
+      max-height: 120px;
+      overflow: hidden;
+      border-radius: 4px;
+    }
+
+    .lively-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .notes {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+
+    .lively-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 999px;
+      opacity: 0.85;
+    }
+  </style>
+
+  {{#if canEdit}}
+    <fieldset class="lively-section">
+      <legend>Settings</legend>
+
+      <label class="lively-row lively-toggle">
+        <input type="checkbox" name="payload.randomize" {{#if payload.randomize}}checked{{/if}}>
+        <span>Randomize On Create</span>
+      </label>
+      <p class="notes">
+        If enabled, one of the configured images will be chosen when the token is created.
+      </p>
+    </fieldset>
+  {{/if}}
+
+  <fieldset class="lively-section">
+    <legend>Images</legend>
+
+    {{#if payload.images.length}}
+      <ol class="lively-images">
+        {{#each payload.images as |img i|}}
+          <li class="lively-image" data-index="{{i}}">
+
+            <div class="lively-image-header">
+              <div class="lively-image-title">
+                <i class="fas fa-image"></i>
+                <strong class="img-name">{{img.name}}</strong>
+              </div>
+
+              <div class="lively-image-actions">
+                <button type="button"
+                        class="lively-btn"
+                        data-action="select-image"
+                        data-index="{{i}}">
+                  Select
+                </button>
+
+                {{#if ../canEdit}}
+                  <button type="button"
+                          class="lively-btn lively-btn-danger"
+                          data-action="remove-image"
+                          data-index="{{i}}">
+                    Remove
+                  </button>
+                {{/if}}
+              </div>
+            </div>
+
+            {{#if ../canEdit}}
+              <div class="lively-grid">
+
+                <div class="lively-field">
+                  <label>Name</label>
+                  <input type="text"
+                         name="payload.images.{{i}}.name"
+                         value="{{img.name}}"
+                         placeholder="e.g. Angry, Sleeping, Injured">
+                </div>
+
+                <div class="lively-field lively-span-2">
+                  <label>Source</label>
+
+                  <div class="lively-src-row">
+                    <input type="text"
+                           name="payload.images.{{i}}.src"
+                           value="{{img.src}}"
+                           placeholder="path/to/image.webp">
+
+                    <button type="button"
+                            class="lively-btn"
+                            data-action="pick-file"
+                            data-index="{{i}}">
+                      Browse…
+                    </button>
+                  </div>
+
+                  {{#if img.src}}
+                    <div class="lively-preview">
+                      <img src="{{img.src}}" alt="{{img.name}}">
+                    </div>
+                  {{/if}}
+                </div>
+
+                <div class="lively-field">
+                  <label>Size (grid cells)</label>
+
+                  <div class="lively-size-row">
+                    <input type="number"
+                           min="1"
+                           step="1"
+                           name="payload.images.{{i}}.size.x"
+                           value="{{#if img.size.x}}{{img.size.x}}{{else}}1{{/if}}">
+                    <span class="lively-x">×</span>
+                    <input type="number"
+                           min="1"
+                           step="1"
+                           name="payload.images.{{i}}.size.y"
+                           value="{{#if img.size.y}}{{img.size.y}}{{else}}1{{/if}}">
+                  </div>
+
+                  <p class="notes">Default is 1×1 (grid cells).</p>
+                </div>
+
+              </div>
+            {{else}}
+              <div class="lively-readonly">
+                {{#if img.src}}
+                  <span class="tag">Has image</span>
+                {{/if}}
+              </div>
+            {{/if}}
+
+          </li>
+        {{/each}}
+      </ol>
+    {{else}}
+      <p class="notes">No images configured yet.</p>
+    {{/if}}
+
+    {{#if canEdit}}
+      <div class="lively-footer">
+        <button type="button"
+                class="lively-btn lively-btn-primary"
+                data-action="add-image">
+          + Add Image
+        </button>
+      </div>
+    {{/if}}
+
+  </fieldset>
+
+  {{#if canEdit}}
+    <button class="ok-button"
+            type="submit"
+            id="ok"
+            style="width: 100%; margin-top: 1rem">
+      Save Lively Token &nbsp;&nbsp;<i class="fas fa-stamp button-fas"></i>
+    </button>
+  {{/if}}
+
+</div>
