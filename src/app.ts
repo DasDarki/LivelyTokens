@@ -24,6 +24,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
 
   constructor(private readonly actor: any) {
     super();
+    this._payload = Data.load(this.actor) ?? {};
     this._requirePayloadShape();
   }
 
@@ -103,7 +104,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
       callback: async (path: string) => {
         img.src = path;
 
-        await this._reopenWithState();
+        await this._reopenWithState(false, `payload.images.${index}.src`);
       },
     });
 
@@ -128,44 +129,60 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
     event?.preventDefault?.();
 
     const raw = formData?.object ?? formData ?? {};
-
     this._requirePayloadShape();
 
-    this._payload.randomize = raw['payload.randomize'] === true;
-    for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
+    this._payload.randomize = raw["payload.randomize"] === true;
+
+    const indices = new Set<number>();
+    for (const k of Object.keys(raw)) {
+      const m = k.match(/^payload\.images\.(\d+)\./);
+      if (m) indices.add(Number(m[1]));
+    }
+
+    const sorted = Array.from(indices).sort((a, b) => a - b);
+    const nextImages: LivelyTokenImage[] = [];
+
+    for (const i of sorted) {
       const name = raw[`payload.images.${i}.name`];
       const src = raw[`payload.images.${i}.src`];
       const sizeX = raw[`payload.images.${i}.size.x`];
       const sizeY = raw[`payload.images.${i}.size.y`];
-      if (name == null || src == null) {
-        break;
-      }
 
-      this._payload.images![i] = {
-        name: String(name),
-        src: String(src),
+      const hasAnything =
+        (name != null && String(name).trim() !== "") ||
+        (src != null && String(src).trim() !== "") ||
+        (sizeX != null && String(sizeX).trim() !== "") ||
+        (sizeY != null && String(sizeY).trim() !== "");
+
+      if (!hasAnything) continue;
+
+      nextImages.push({
+        name: name != null ? String(name) : "",
+        src: src != null ? String(src) : "",
         size: {
-          x: sizeX != null ? Number(sizeX) : undefined,
-          y: sizeY != null ? Number(sizeY) : undefined,
+          x: sizeX != null && String(sizeX) !== "" ? Number(sizeX) : undefined,
+          y: sizeY != null && String(sizeY) !== "" ? Number(sizeY) : undefined,
         },
-      };
+      });
     }
 
-    await Data.save(this.actor, this._payload);
+    this._payload.images = nextImages;
 
-    await this._reopenWithState(true);
+    await Data.save(this.actor, this._payload);
+    ui.notifications?.info("Lively Tokens saved");
+
+    await this.render({ force: true });
   }
 
-  private async _reopenWithState(ignoreForm: boolean = false) {
-    console.log('[DBG | Lively Tokens] REOPEN WITH STATE', this.form);
-    /*const cachedState: ({name: string, value: any})[] = [];
+  private async _reopenWithState(ignoreForm: boolean = false, skipStateName: string = '') {
+    const cachedState: ({name: string, value: any})[] = [];
     let imagesScrollState: number = -1;
 
     if (this.form && !ignoreForm) {
       this.form.querySelectorAll('input').forEach(input => {
         let value: any = input.value;
         if (input.type === "checkbox") {
-          value = value === "on" || input.checked;
+          value = value === "on";
         }
 
         cachedState.push({
@@ -178,12 +195,16 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
       if (imagesList) {
         imagesScrollState = imagesList.scrollTop;
       }
-    }*/
+    }
 
     await this.render({ force: true });
 
-    /*if (this.form && cachedState.length > 0) {
+    if (this.form && cachedState.length > 0) {
       for (const input of cachedState) {
+        if (input.name === skipStateName) {
+          continue;
+        }
+
         const el = this.form.querySelector(`input[name="${input.name}"]`) as HTMLInputElement;
         if (el) {
           el.value = input.value;
@@ -200,7 +221,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
           el.scrollTop = imagesScrollState;
         }
       }
-    }*/
+    }
   }
 
   private _requirePayloadShape() {

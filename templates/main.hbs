@@ -138,20 +138,6 @@
     }
   </style>
 
-  {{#if canEdit}}
-    <fieldset class="lively-section">
-      <legend>Settings</legend>
-
-      <label class="lively-row lively-toggle">
-        <input type="checkbox" name="payload.randomize" {{#if payload.randomize}}checked{{/if}}>
-        <span>Randomize On Create</span>
-      </label>
-      <p class="notes">
-        If enabled, one of the configured images will be chosen when the token is created.
-      </p>
-    </fieldset>
-  {{/if}}
-
   <fieldset class="lively-section">
     <legend>Images</legend>
 
@@ -269,6 +255,18 @@
   </fieldset>
 
   {{#if canEdit}}
+    <fieldset class="lively-section">
+      <legend>Settings</legend>
+
+      <label class="lively-row lively-toggle">
+        <input type="checkbox" name="payload.randomize" {{#if payload.randomize}}checked{{/if}}>
+        <span>Randomize On Create</span>
+      </label>
+      <p class="notes">
+        If enabled, one of the configured images will be chosen when the token is created.
+      </p>
+    </fieldset>
+
     <button class="ok-button"
             type="submit"
             id="ok"
