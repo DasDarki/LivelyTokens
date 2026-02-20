@@ -153,15 +153,15 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
 
     await Data.save(this.actor, this._payload);
 
-    await this._reopenWithState();
+    await this._reopenWithState(true);
   }
 
-  private async _reopenWithState() {
+  private async _reopenWithState(ignoreForm: boolean = false) {
     console.log('[DBG | Lively Tokens] REOPEN WITH STATE', this.form);
-    const cachedState: ({name: string, value: any})[] = [];
+    /*const cachedState: ({name: string, value: any})[] = [];
     let imagesScrollState: number = -1;
 
-    if (this.form) {
+    if (this.form && !ignoreForm) {
       this.form.querySelectorAll('input').forEach(input => {
         let value: any = input.value;
         if (input.type === "checkbox") {
@@ -178,11 +178,11 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
       if (imagesList) {
         imagesScrollState = imagesList.scrollTop;
       }
-    }
+    }*/
 
     await this.render({ force: true });
 
-    if (this.form && cachedState.length > 0) {
+    /*if (this.form && cachedState.length > 0) {
       for (const input of cachedState) {
         const el = this.form.querySelector(`input[name="${input.name}"]`) as HTMLInputElement;
         if (el) {
@@ -200,7 +200,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
           el.scrollTop = imagesScrollState;
         }
       }
-    }
+    }*/
   }
 
   private _requirePayloadShape() {

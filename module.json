@@ -2,7 +2,7 @@
   "id": "lively-tokens",
   "title": "Lively Tokens",
   "description": "Lively Tokens allows you to switch avatar images of tokens on the fly.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "library": "false",
   "compatibility": {
     "minimum": 10,
