@@ -20,23 +20,15 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
     form: { template: `modules/${MODULE_ID}/templates/main.hbs` },
   };
 
-  private _payload: LivelyTokenData;
+  private _payload: LivelyTokenData = null!;
 
   constructor(private readonly actor: any) {
     super();
-    this._payload = Data.load(this.actor) ?? {};
-    this._payload.images ??= [];
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
+    this._requirePayloadShape();
   }
 
   async _prepareContext() {
-    this._payload ??= {};
-    this._payload.images ??= [];
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
+    this._requirePayloadShape();
 
     return {
       canEdit: game.user?.isGM,
@@ -82,32 +74,27 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
   }
 
   private async _addImage() {
-    this._payload.images ??= [];
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
+    this._requirePayloadShape();
 
-    const img: LivelyTokenImage = { name: "", src: "", size: { x: 1, y: 1 } };
-    this._payload.images.push(img);
-    await this.render({ force: true });
+    const img: LivelyTokenImage = { name: `${this._payload.images!.length + 1}`, src: "", size: { x: 1, y: 1 } };
+    this._payload.images!.push(img);
+
+    await this._reopenWithState();
   }
 
   private async _removeImage(index: number) {
-    this._payload.images ??= [];
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
-    if (index < 0 || index >= this._payload.images.length) return;
-    this._payload.images.splice(index, 1);
-    await this.render({ force: true });
+    this._requirePayloadShape();
+
+    if (index < 0 || index >= this._payload.images!.length) return;
+    this._payload.images!.splice(index, 1);
+
+    await this._reopenWithState();
   }
 
   private async _pickFile(index: number) {
-    this._payload.images ??= [];
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
-    const img = this._payload.images[index];
+    this._requirePayloadShape();
+
+    const img = this._payload.images![index];
     if (!img) return;
 
     const fp = new FilePicker({
@@ -115,7 +102,8 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
       current: img.src || "",
       callback: async (path: string) => {
         img.src = path;
-        await this.render({ force: true });
+
+        await this._reopenWithState();
       },
     });
 
@@ -141,15 +129,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
 
     const raw = formData?.object ?? formData ?? {};
 
-    if (!this._payload) {
-      this._payload = {};
-    }
-    if (!this._payload.images) {
-      this._payload.images = [];
-    }
-    if (!Array.isArray(this._payload.images)) {
-      this._payload.images = [];
-    }
+    this._requirePayloadShape();
 
     this._payload.randomize = raw['payload.randomize'] === true;
     for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
@@ -161,7 +141,7 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
         break;
       }
 
-      this._payload.images[i] = {
+      this._payload.images![i] = {
         name: String(name),
         src: String(src),
         size: {
@@ -172,8 +152,67 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
     }
 
     await Data.save(this.actor, this._payload);
-    ui.notifications?.info("Lively Tokens saved");
+
+    await this._reopenWithState();
+  }
+
+  private async _reopenWithState() {
+    console.log('[DBG | Lively Tokens] REOPEN WITH STATE', this.form);
+    const cachedState: ({name: string, value: any})[] = [];
+    let imagesScrollState: number = -1;
+
+    if (this.form) {
+      this.form.querySelectorAll('input').forEach(input => {
+        let value: any = input.value;
+        if (input.type === "checkbox") {
+          value = value === "on" || input.checked;
+        }
+
+        cachedState.push({
+          name: input.name,
+          value: value
+        });
+      });
+
+      const imagesList = this.form.querySelector('#images-ol');
+      if (imagesList) {
+        imagesScrollState = imagesList.scrollTop;
+      }
+    }
+
     await this.render({ force: true });
+
+    if (this.form && cachedState.length > 0) {
+      for (const input of cachedState) {
+        const el = this.form.querySelector(`input[name="${input.name}"]`) as HTMLInputElement;
+        if (el) {
+          el.value = input.value;
+
+          if (el.type === "checkbox") {
+            el.checked = input.value === true;
+          }
+        }
+      }
+
+      if (imagesScrollState !== -1) {
+        const el = this.form.querySelector('#images-ol');
+        if (el) {
+          el.scrollTop = imagesScrollState;
+        }
+      }
+    }
+  }
+
+  private _requirePayloadShape() {
+    if (!this._payload) {
+      this._payload = {};
+    }
+    if (!this._payload.images) {
+      this._payload.images = [];
+    }
+    if (!Array.isArray(this._payload.images)) {
+      this._payload.images = [];
+    }
   }
 
   public static setActorImage(actorId: string, img: LivelyTokenImage): void {

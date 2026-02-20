@@ -156,7 +156,7 @@
     <legend>Images</legend>
 
     {{#if payload.images.length}}
-      <ol class="lively-images">
+      <ol id="images-ol" class="lively-images">
         {{#each payload.images as |img i|}}
           <li class="lively-image" data-index="{{i}}">
 
