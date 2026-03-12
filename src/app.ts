@@ -253,14 +253,19 @@ export class LivelyTokensApplication extends HandlebarsApplicationMixin(Applicat
       update["height"] = img.size.y;
     }
 
-    canvas?.tokens?.placeables.forEach(tok => {
-      if (tok.document.actorId === actorId) {
-        tok.document.update(update);
-      }
-    });
-
-    actor.token?.update(update);
     actor.prototypeToken?.update(update);
     actor.update({ img: img.src });
+
+    game.scenes?.forEach(scene => {
+      const updates = scene.tokens
+        .filter(tok => tok.actorId === actorId)
+        .map(tok => ({
+          _id: tok.id,
+          ...update,
+        }));
+      if (updates.length > 0) {
+        scene.updateEmbeddedDocuments('Token', updates);
+      }
+    });
   }
 }
